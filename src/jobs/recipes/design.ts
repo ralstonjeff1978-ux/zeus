@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { registerRecipe, type Recipe, type StepContext } from '../engine.ts'
+import type { AcceptanceCheck } from '../acceptance.ts'
 import { markdownToHtml, wrapHtmlDocument } from '../../agent/tools/artifacts.ts'
 
 /**
@@ -295,6 +296,14 @@ async function render(ctx: StepContext) {
     output:
       `Wrote:\n  ${mdPath}\n  ${htmlPath}\n\n` +
       `Render to PDF with:  zeus pdf "${htmlPath}"`,
+    // Acceptance gate: the step is not "done" on the handler's word that it
+    // wrote the deliverables — the engine confirms both files actually exist on
+    // disk before marking it done. Returned by the handler (not seeded), so it
+    // also covers the render step queued by an improvement pass.
+    accept: [
+      { kind: 'file_exists', path: 'design.md' },
+      { kind: 'file_exists', path: 'design.html' },
+    ] satisfies AcceptanceCheck[],
   }
 }
 

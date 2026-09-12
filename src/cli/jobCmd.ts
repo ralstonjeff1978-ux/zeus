@@ -82,6 +82,12 @@ export async function cmdJob(rest: string[], p: Parsed): Promise<number> {
               console.log(`${C.green('done')}${C.dim(`${ev.brainId ? ` · ${ev.brainId}` : ''}${cost}`)}`)
               break
             }
+            case 'gate':
+              // Runs between step_start and its resolution; a passing gate shows
+              // a small marker before the `done` word, a failing one is reported
+              // by the step_failed that follows it.
+              if (ev.passed) process.stdout.write(C.dim('gate✓ '))
+              break
             case 'step_failed':
               failed++
               console.log(C.red(`failed — ${ev.error.slice(0, 100)}`))

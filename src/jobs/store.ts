@@ -1,6 +1,7 @@
 import { Database } from 'bun:sqlite'
 import { resolve } from 'node:path'
 import { zeusHome } from '../core/ledger.ts'
+import type { AcceptanceCheck } from './acceptance.ts'
 
 /**
  * Durable job storage.
@@ -42,6 +43,12 @@ export type Step = {
   attempts: number
   brainId: string | null
   costUsd: number
+  /**
+   * An optional acceptance gate, stored as a JSON `AcceptanceCheck`. When set,
+   * the engine runs it after the step's handler and only marks the step `done`
+   * if it passes; a failure feeds the retry/resume path. Null means no gate.
+   */
+  acceptance: string | null
   updatedAt: string
 }
 
@@ -81,11 +88,18 @@ export function jobsDb(): Database {
       attempts   INTEGER NOT NULL DEFAULT 0,
       brain_id   TEXT,
       cost_usd   REAL NOT NULL DEFAULT 0,
+      acceptance TEXT,
       updated_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS steps_job    ON steps(job_id, ord);
     CREATE INDEX IF NOT EXISTS steps_status ON steps(job_id, status);
   `)
+  // Additive migration: a database created before acceptance gates existed has
+  // no `acceptance` column. Add it in place; existing rows read as NULL (no gate).
+  const cols = new Set(
+    (db.query(`PRAGMA table_info(steps)`).all() as Array<{ name: string }>).map(c => c.name),
+  )
+  if (!cols.has('acceptance')) db.exec(`ALTER TABLE steps ADD COLUMN acceptance TEXT`)
   return db
 }
 
@@ -139,12 +153,14 @@ export function addStep(s: {
   kind: string
   title: string
   input?: unknown
+  /** Optional acceptance gate run after the step's handler; see `Step.acceptance`. */
+  acceptance?: AcceptanceCheck | null
 }): number {
   const d = jobsDb()
   const res = d
     .query(
-      `INSERT INTO steps (job_id, parent_id, ord, kind, title, input, updated_at)
-       VALUES (?,?,?,?,?,?,?)`,
+      `INSERT INTO steps (job_id, parent_id, ord, kind, title, input, acceptance, updated_at)
+       VALUES (?,?,?,?,?,?,?,?)`,
     )
     .run(
       s.jobId,
@@ -153,6 +169,7 @@ export function addStep(s: {
       s.kind,
       s.title,
       JSON.stringify(s.input ?? {}),
+      s.acceptance ? JSON.stringify(s.acceptance) : null,
       now(),
     )
   return Number(res.lastInsertRowid)
@@ -180,7 +197,7 @@ export function updateStep(
 
 const STEP_COLS = `id, job_id AS jobId, parent_id AS parentId, ord, kind, title, status,
                    input, output, error, attempts, brain_id AS brainId,
-                   cost_usd AS costUsd, updated_at AS updatedAt`
+                   cost_usd AS costUsd, acceptance, updated_at AS updatedAt`
 
 export function steps(jobId: string): Step[] {
   return jobsDb().query(`SELECT ${STEP_COLS} FROM steps WHERE job_id = ? ORDER BY ord, id`).all(jobId) as Step[]

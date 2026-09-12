@@ -4,6 +4,7 @@ import type { RegistryFile } from '../registry/schema.ts'
 import { routeText, type RouteTarget } from '../core/router.ts'
 import * as store from './store.ts'
 import type { Job, Step } from './store.ts'
+import { runCheck, coerceCheck, type AcceptanceCheck } from './acceptance.ts'
 
 /**
  * The job engine.
@@ -37,19 +38,37 @@ export type StepContext = {
   workdir: string
 }
 
+/** A step to append: the shape recipes use for both seeding and spawning. */
+export type StepSpec = {
+  kind: string
+  title: string
+  input?: unknown
+  ord?: number
+  /** Optional acceptance gate persisted on the step; the engine runs it after the handler. */
+  acceptance?: AcceptanceCheck
+}
+
 export type StepHandler = (ctx: StepContext) => Promise<{
   output: string
   /** Steps to append as a result of this one — how a plan expands into work. */
-  spawn?: Array<{ kind: string; title: string; input?: unknown; ord?: number }>
+  spawn?: StepSpec[]
   /** Merged into the job's durable state. */
   patchState?: Record<string, unknown>
+  /**
+   * An acceptance gate to run against what this step just produced. The step is
+   * marked `done` only if it passes; otherwise it takes the ordinary retry/resume
+   * path. A handler that has just written code returns the command that verifies
+   * it here. Takes precedence over any gate persisted on the step. One check, a
+   * list (all must pass), or nothing.
+   */
+  accept?: AcceptanceCheck | AcceptanceCheck[] | null
 }>
 
 export type Recipe = {
   kind: string
   description: string
   /** Steps created when the job is started. */
-  seed: (goal: string) => Array<{ kind: string; title: string; input?: unknown; ord?: number }>
+  seed: (goal: string) => StepSpec[]
   handlers: Record<string, StepHandler>
 }
 
@@ -96,7 +115,14 @@ export function startJob(opts: StartOptions): Job {
 
   let ord = 0
   for (const s of recipe.seed(opts.goal)) {
-    store.addStep({ jobId: id, kind: s.kind, title: s.title, input: s.input, ord: s.ord ?? ord++ })
+    store.addStep({
+      jobId: id,
+      kind: s.kind,
+      title: s.title,
+      input: s.input,
+      ord: s.ord ?? ord++,
+      acceptance: s.acceptance,
+    })
   }
   return job
 }
@@ -105,9 +131,15 @@ export type RunEvent =
   | { type: 'step_start'; step: Step }
   | { type: 'step_done'; step: Step; output: string; costUsd: number; brainId?: string }
   | { type: 'step_failed'; step: Step; error: string }
+  /** An acceptance gate ran for a step; `passed` decides whether it may be `done`. */
+  | { type: 'gate'; step: Step; passed: boolean; evidence: string }
   | { type: 'spawned'; count: number }
   | { type: 'job_done'; jobId: string; costUsd: number }
   | { type: 'job_paused'; jobId: string; reason: string }
+
+/** Thrown internally when an acceptance gate fails, so the step's existing
+ *  retry/resume path handles it exactly like any other step failure. */
+class GateFailure extends Error {}
 
 export type RunOptions = {
   registry: RegistryFile
@@ -201,6 +233,17 @@ export async function* runJob(jobId: string, opts: RunOptions): AsyncGenerator<R
     try {
       const result = await handler(ctx)
 
+      // Acceptance gate — "run what it wrote". A step that produced code or
+      // artifacts is not done until something verified it. The gate runs BEFORE
+      // any spawn/patchState is persisted, so a failed gate leaves no partial
+      // side effects in the job tree: the step re-runs from clean on resume.
+      const check = coerceCheck(result.accept) ?? persistedCheck(step)
+      if (check) {
+        const gate = await runCheck(check, { cwd: current.workdir, signal: opts.signal })
+        yield { type: 'gate', step, passed: gate.passed, evidence: gate.evidence }
+        if (!gate.passed) throw new GateFailure(gate.evidence)
+      }
+
       if (result.patchState) {
         store.updateJob(jobId, { state: JSON.stringify({ ...state, ...result.patchState }) })
       }
@@ -217,6 +260,7 @@ export async function* runJob(jobId: string, opts: RunOptions): AsyncGenerator<R
             title: s.title,
             input: s.input,
             ord: s.ord ?? ord++,
+            acceptance: s.acceptance,
           })
           spawned++
         }
@@ -238,7 +282,8 @@ export async function* runJob(jobId: string, opts: RunOptions): AsyncGenerator<R
       }
       if (spawned) yield { type: 'spawned', count: spawned }
     } catch (e) {
-      const message = (e as Error).message
+      const message =
+        e instanceof GateFailure ? `Acceptance gate failed:\n${e.message}` : (e as Error).message
       const fresh = store.stepById(step.id)!
       if (fresh.attempts >= maxAttempts) {
         store.updateStep(step.id, { status: 'failed', error: message, costUsd: stepCost })
@@ -260,6 +305,17 @@ export async function* runJob(jobId: string, opts: RunOptions): AsyncGenerator<R
   } else {
     store.updateJob(jobId, { status: 'paused' })
     yield { type: 'job_paused', jobId, reason: `step limit of ${maxSteps} reached` }
+  }
+}
+
+/** The acceptance gate persisted on a step at creation time, if any and valid. */
+function persistedCheck(step: Step): AcceptanceCheck | undefined {
+  if (!step.acceptance) return undefined
+  try {
+    return JSON.parse(step.acceptance) as AcceptanceCheck
+  } catch {
+    // A malformed stored check should not crash the run; treat it as no gate.
+    return undefined
   }
 }
 
