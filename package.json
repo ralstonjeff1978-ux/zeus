@@ -1,0 +1,24 @@
+{
+  "name": "zeus",
+  "version": "0.1.0",
+  "description": "Zeus — a universal, local-first AI coding tool and assistant.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "zeus": "bun run src/index.ts",
+    "dev": "bun --watch run src/index.ts",
+    "typecheck": "bun x tsc --noEmit",
+    "test:sandbox": "bun run scripts/sandbox-test.ts",
+    "test:capability": "bun run scripts/capability-test.ts",
+    "test": "bun run typecheck && bun run test:sandbox"
+  },
+  "dependencies": {
+    "yaml": "^2.6.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "bun-types": "^1.2.0",
+    "typescript": "^5.7.0"
+  }
+}

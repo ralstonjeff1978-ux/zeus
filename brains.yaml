@@ -1,0 +1,421 @@
+# Zeus brain registry.
+# Every brain Zeus can reach is declared here. Add one by appending an entry.
+# locality is a label for grouping only — Zeus never blocks a remote brain.
+# Secrets never live here: use auth: env:YOUR_VAR_NAME
+
+version: 1
+default: qwen3-coder-abliterated-30b
+brains:
+  - id: llama3.3-abliterated-ft-70b
+    label: huihui_ai/llama3.3-abliterated-ft:70b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/llama3.3-abliterated-ft:70b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 42.5
+  - id: qwen3.6-abliterated-35b
+    label: huihui_ai/Qwen3.6-abliterated:35b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/Qwen3.6-abliterated:35b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 23.9
+  - id: gemma-4-abliterated-31b
+    label: huihui_ai/gemma-4-abliterated:31b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/gemma-4-abliterated:31b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - architect
+    sizeGb: 19.9
+  - id: qwen3-coder-abliterated-30b
+    label: huihui_ai/qwen3-coder-abliterated:30b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/qwen3-coder-abliterated:30b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - coder
+    sizeGb: 18.6
+    probed:
+      reachable: false
+      toolCalls: false
+      probedAt: 2026-08-12T15:31:50.480Z
+      error: "qwen3-coder-abliterated-30b: cannot reach http://localhost:11434/v1/chat/completions — The operation was aborted."
+  - id: gemma-4-abliterated-31b-v2
+    label: huihui_ai/gemma-4-abliterated:31b-v2
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/gemma-4-abliterated:31b-v2
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - writer
+    sizeGb: 19.9
+  - id: qwen3-vl-abliterated-32b
+    label: huihui_ai/qwen3-vl-abliterated:32b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/qwen3-vl-abliterated:32b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - reviewer
+      - vision
+    sizeGb: 20.9
+  # ===== PENDING PULL (added 2026-09-02, NOT yet on disk) =================
+  # Roster refresh — newer abliterated models that fit the 24GB card fully.
+  # TOMORROW, in order:
+  #   1. `ollama pull huihui_ai/Qwen3.8-abliterated:27b`
+  #   2. `ollama pull huihui_ai/qwen3-coder-next-abliterated`  (confirm exact tag first: `ollama pull ...:q4_K` if bare name 404s)
+  #   3. `zeus test qwen3.8-abliterated-27b` / `zeus test qwen3-coder-next-abliterated`  (probe)
+  #   4. capability suite --repeat=3 across these + glm-4.7-flash baseline -> assign coder seat BY MEASUREMENT.
+  # Cloud stays excluded from the coder/tool seats (locked "cloud thinks, local acts").
+  # Newest Qwen; big tool-call-reliability jump (Zeus's #1 weakness); 18GB Q4 fits VRAM.
+  # Candidate for coder / architect / reviewer(vision) / new default.
+  - id: qwen3.8-abliterated-27b
+    label: huihui_ai/Qwen3.8-abliterated:27b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/Qwen3.8-abliterated:27b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 18
+  # Newest dedicated coder (Qwen3-Coder-Next); 58.7% SWE-bench Verified, 256K ctx.
+  # Head-to-head candidate for the coder seat vs qwen3.8 above.
+  - id: qwen3-coder-next-abliterated
+    label: huihui_ai/qwen3-coder-next-abliterated
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/qwen3-coder-next-abliterated
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 19
+  # ===== end pending pull ================================================
+  - id: mxbai-embed-large
+    label: mxbai-embed-large:latest
+    kind: embed
+    adapter: ollama-native
+    endpoint: http://localhost:11434
+    model: mxbai-embed-large:latest
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - embed
+    sizeGb: 0.7
+    probed:
+      reachable: true
+      firstTokenMs: 2330
+      probedAt: 2026-08-12T15:33:28.894Z
+  - id: qwen2.5-coder-32b-instruct-abliterated-gguf
+    label: hf.co/mradermacher/Qwen2.5-Coder-32B-Instruct-Abliterated-GGUF:latest
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: hf.co/mradermacher/Qwen2.5-Coder-32B-Instruct-Abliterated-GGUF:latest
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 17.9
+  - id: deepseek-v3.1-671b-cloud
+    label: deepseek-v3.1:671b-cloud
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: deepseek-v3.1:671b-cloud
+    auth: none
+    locality: remote
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    notes: Ollama Cloud — reached via localhost but executed off-machine.
+  - id: qwen3-coder-480b-cloud
+    label: qwen3-coder:480b-cloud
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: qwen3-coder:480b-cloud
+    auth: none
+    locality: remote
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    notes: Ollama Cloud — reached via localhost but executed off-machine.
+  - id: qwen3.5-abliterated-35b
+    label: huihui_ai/qwen3.5-abliterated:35b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/qwen3.5-abliterated:35b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 23.9
+  - id: glm-4.7-flash-abliterated
+    label: huihui_ai/glm-4.7-flash-abliterated:latest
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/glm-4.7-flash-abliterated:latest
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 18.8
+  - id: qwen3-abliterated-8b-v2
+    label: huihui_ai/qwen3-abliterated:8b-v2
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/qwen3-abliterated:8b-v2
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 5
+  - id: foundation-sec-abliterated-8b
+    label: huihui_ai/foundation-sec-abliterated:8b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/foundation-sec-abliterated:8b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - security
+    sizeGb: 4.9
+  - id: llama3.2-abliterate-3b
+    label: huihui_ai/llama3.2-abliterate:3b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/llama3.2-abliterate:3b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 2.2
+    probed:
+      reachable: true
+      streaming: false
+      toolCalls: true
+      firstTokenMs: 4849
+      probedAt: 2026-08-12T15:33:31.341Z
+  - id: orchestrator-abliterated-8b
+    label: huihui_ai/orchestrator-abliterated:8b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/orchestrator-abliterated:8b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - router
+    sizeGb: 5
+  - id: llama3.2-abliterate-1b
+    label: huihui_ai/llama3.2-abliterate:1b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/llama3.2-abliterate:1b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 1
+  - id: deepseek-r1-abliterated-1.5b
+    label: huihui_ai/deepseek-r1-abliterated:1.5b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/deepseek-r1-abliterated:1.5b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 1.1
+  - id: qwen2.5-0.5b
+    label: qwen2.5:0.5b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: qwen2.5:0.5b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 0.4
+    probed:
+      reachable: true
+      streaming: false
+      toolCalls: true
+      firstTokenMs: 7005
+      probedAt: 2026-08-12T15:33:21.769Z
+  - id: qwen2.5-vl-abliterated-3b
+    label: huihui_ai/qwen2.5-vl-abliterated:3b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/qwen2.5-vl-abliterated:3b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - vision
+    sizeGb: 3.2
+  - id: granite-code-3b
+    label: granite-code:3b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: granite-code:3b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 2
+  - id: gpt-oss-120b-cloud
+    label: gpt-oss:120b-cloud
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: gpt-oss:120b-cloud
+    auth: none
+    locality: remote
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    notes: Ollama Cloud — reached via localhost but executed off-machine.
+  - id: deepseek-r1-abliterated-7b
+    label: huihui_ai/deepseek-r1-abliterated:7b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/deepseek-r1-abliterated:7b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - reasoner
+    sizeGb: 4.7
+  - id: qwen2.5-abliterate-1.5b
+    label: huihui_ai/qwen2.5-abliterate:1.5b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/qwen2.5-abliterate:1.5b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 1
+  - id: granite3.1-dense-abliterated-2b
+    label: huihui_ai/granite3.1-dense-abliterated:2b
+    kind: chat
+    adapter: openai-compat
+    endpoint: http://localhost:11434/v1
+    model: huihui_ai/granite3.1-dense-abliterated:2b
+    auth: none
+    locality: local
+    price:
+      in: 0
+      out: 0
+    roles:
+      - general
+    sizeGb: 1.5

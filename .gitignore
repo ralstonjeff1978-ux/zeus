@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Vendored reference material (large, third-party) — not part of Zeus
+reference/
+
+# Local runtime state: checkpoints, job/ledger databases, run logs.
+# May contain prompts and outputs from real runs — never commit.
+.zeus/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Logs
+*.log
+
+.DS_Store
